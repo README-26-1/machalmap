@@ -7,7 +7,7 @@ interface Ctx {
 }
 
 // GET /api/posts/:id — 글 상세 + 댓글
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   const supabase = getServiceClient();
 
   // 조인(embed) 대신 단순 조회 후 닉네임을 별도로 매핑 → 관계 해석 실패에 영향받지 않음
@@ -40,10 +40,24 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   const nick = (id: string) =>
     profiles?.find((p) => p.id === id)?.nickname ?? "익명";
 
+  // 현재 사용자가 좋아요를 눌렀는지
+  const user = await getUserFromRequest(req);
+  let liked = false;
+  if (user) {
+    const { data: likeRow } = await supabase
+      .from("likes")
+      .select("post_id")
+      .eq("post_id", params.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    liked = !!likeRow;
+  }
+
   return Response.json({
     data: {
       ...post,
       author_nickname: nick(post.user_id),
+      liked,
       comments: (comments ?? []).map((c) => ({
         ...c,
         author_nickname: nick(c.user_id),

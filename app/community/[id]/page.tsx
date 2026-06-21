@@ -7,18 +7,20 @@ import Button from "@/components/Button";
 import { apiGet, apiSend } from "@/lib/api";
 import { Comment, Post } from "@/types/community";
 
-type PostDetail = Post & { comments: Comment[] };
+type PostDetail = Post & { comments: Comment[]; liked?: boolean };
 
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [post, setPost] = useState<PostDetail | null>(null);
   const [comment, setComment] = useState("");
   const [likeCount, setLikeCount] = useState(0);
+  const [liked, setLiked] = useState(false);
 
   async function load() {
     const data = await apiGet<PostDetail>(`/api/posts/${id}`);
     setPost(data);
     setLikeCount(data.like_count);
+    setLiked(!!data.liked);
   }
 
   useEffect(() => {
@@ -33,6 +35,7 @@ export default function PostDetailPage() {
         "POST"
       );
       setLikeCount(data.like_count);
+      setLiked(data.liked);
     } catch (e) {
       alert((e as Error).message);
     }
@@ -61,9 +64,15 @@ export default function PostDetailPage() {
 
       <button
         onClick={like}
-        className="mt-4 flex items-center gap-1 rounded-full border border-line px-3 py-1.5 text-sm"
+        aria-pressed={liked}
+        className={`mt-4 flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+          liked
+            ? "border-marker-danger bg-marker-danger/10 text-marker-danger"
+            : "border-line text-ink-muted hover:text-ink"
+        }`}
       >
-        <Heart size={15} /> {likeCount}
+        <Heart size={15} className={liked ? "fill-marker-danger" : ""} />
+        {likeCount}
       </button>
 
       <hr className="my-5 border-line" />
