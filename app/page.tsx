@@ -19,6 +19,7 @@ export default function MapPage() {
   const [center, setCenter] = useState<Coordinates>();
   const [draftLocation, setDraftLocation] = useState<Coordinates | null>(null);
   const [loading, setLoading] = useState(true);
+  const [locationReady, setLocationReady] = useState(false);
   const [reportOpen, setReportOpen] = useState(false); // 데스크톱 제보 모달
 
   const loadReports = useCallback(() => {
@@ -30,10 +31,27 @@ export default function MapPage() {
   useEffect(() => {
     loadReports().finally(() => setLoading(false));
 
+    const fallbackTimer = window.setTimeout(() => setLocationReady(true), 1800);
+
     navigator.geolocation?.getCurrentPosition(
-      (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {}
+      (pos) => {
+        window.clearTimeout(fallbackTimer);
+        setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocationReady(true);
+      },
+      () => {
+        window.clearTimeout(fallbackTimer);
+        setLocationReady(true);
+      },
+      { enableHighAccuracy: true, maximumAge: 60_000, timeout: 3_000 }
     );
+
+    if (!navigator.geolocation) {
+      window.clearTimeout(fallbackTimer);
+      setLocationReady(true);
+    }
+
+    return () => window.clearTimeout(fallbackTimer);
   }, [loadReports]);
 
   // 해결 완료된 제보는 지도에서 숨김(데이터는 유지). 카테고리 필터도 함께 적용.
@@ -68,7 +86,7 @@ export default function MapPage() {
 
       {/* 지도 */}
       <div className="h-full w-full">
-        {loading ? (
+        {loading || !locationReady ? (
           <div className="flex h-full items-center justify-center text-ink-muted">
             지도를 불러오는 중…
           </div>
