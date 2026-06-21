@@ -96,6 +96,33 @@ create policy "likes delete own" on likes for delete using (auth.uid() = user_id
 create policy "feedbacks read all" on feedbacks for select using (true);
 create policy "feedbacks insert" on feedbacks for insert with check (true);
 
+create table if not exists report_comments (
+  id uuid primary key default gen_random_uuid(),
+  report_id uuid not null references reports(id) on delete cascade,
+  user_id uuid not null references profiles(id) on delete cascade,
+  content text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists report_comments_report_idx on report_comments(report_id, created_at);
+
+create table if not exists report_likes (
+  report_id uuid not null references reports(id) on delete cascade,
+  user_id uuid not null references profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (report_id, user_id)
+);
+
+alter table report_comments enable row level security;
+alter table report_likes enable row level security;
+
+create policy "report comments read all" on report_comments for select using (true);
+create policy "report comments insert auth" on report_comments for insert with check (auth.uid() = user_id);
+create policy "report comments delete own" on report_comments for delete using (auth.uid() = user_id);
+
+create policy "report likes read all" on report_likes for select using (true);
+create policy "report likes insert auth" on report_likes for insert with check (auth.uid() = user_id);
+create policy "report likes delete own" on report_likes for delete using (auth.uid() = user_id);
+
 -- 7. interest_areas (관심 지역)
 create table if not exists interest_areas (
   id uuid primary key default gen_random_uuid(),
