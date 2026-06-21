@@ -6,23 +6,25 @@ import { ImagePlus, X } from "lucide-react";
 import Button from "@/components/Button";
 import { apiSend, uploadImage } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
-import { CATEGORIES, Category, Report } from "@/types/report";
+import { CATEGORIES, Category, Coordinates, Report } from "@/types/report";
 
 interface Props {
   // 등록 성공 후 처리 (지정 안 하면 홈으로 이동). 모달에서는 닫기+새로고침에 사용.
   readonly onSuccess?: () => void;
   // 취소/닫기 (모달에서 로그인 안내 시 닫기 버튼 등)
   readonly onCancel?: () => void;
+  // 지도 우클릭 등으로 전달된 초기 좌표 (있으면 위치를 미리 채움)
+  readonly initialCoords?: Coordinates | null;
 }
 
-export default function ReportForm({ onSuccess, onCancel }: Props) {
+export default function ReportForm({ onSuccess, onCancel, initialCoords }: Props) {
   const router = useRouter();
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>("");
   const [category, setCategory] = useState<Category>(CATEGORIES[0]);
   const [description, setDescription] = useState("");
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<Coordinates | null>(initialCoords ?? null);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -30,6 +32,11 @@ export default function ReportForm({ onSuccess, onCancel }: Props) {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
   }, []);
+
+  // 비동기로 전달되는 초기 좌표(URL 파라미터 등)를 반영
+  useEffect(() => {
+    if (initialCoords) setCoords(initialCoords);
+  }, [initialCoords]);
 
   function handleFiles(files: FileList | null) {
     const f = files?.[0];
