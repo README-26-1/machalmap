@@ -227,5 +227,11 @@ export default function KakaoMap({
     map.panTo(new window.kakao.maps.LatLng(focus.lat, focus.lng));
   }, [focus]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !window.kakao?.maps || !center) return;
+    map.panTo(new window.kakao.maps.LatLng(center.lat, center.lng));
+  }, [center]);
+
   return <div ref={ref} className="h-full w-full" />;
 }
