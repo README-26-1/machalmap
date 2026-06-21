@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { getServiceClient } from "@/lib/supabaseServer";
 import { getUserFromRequest, jsonError } from "@/lib/auth";
+import { getServiceClient } from "@/lib/supabaseServer";
 
 interface Ctx {
   params: { id: string };
@@ -17,12 +17,8 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     .eq("report_id", params.id)
     .order("created_at", { ascending: true });
 
-  if (error) {
-    console.error("[GET /api/reports/:id/comments] DB error:", error);
-    return jsonError("DB_ERROR", error.message, 500);
-  }
+  if (error) return jsonError("DB_ERROR", error.message, 500);
 
-  // 작성자 닉네임 매핑
   const userIds = [
     ...new Set(
       (comments ?? [])
@@ -30,21 +26,17 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
         .filter((userId): userId is string => Boolean(userId))
     ),
   ];
-  const { data: profiles, error: profilesError } = userIds.length
+  const { data: profiles } = userIds.length
     ? await supabase.from("profiles").select("id, nickname").in("id", userIds)
-    : { data: [] as { id: string; nickname: string }[], error: null };
-
-  if (profilesError) {
-    console.error("[GET /api/reports/:id/comments] profiles DB error:", profilesError);
-  }
-
+    : { data: [] as { id: string; nickname: string }[] };
   const nicknames = new Map(profiles?.map((profile) => [profile.id, profile.nickname]));
 
-  const mapped = (comments ?? []).map((c) => ({
-    ...c,
-    author_nickname: (c.user_id && nicknames.get(c.user_id)) || "익명",
-  }));
-  return Response.json({ data: mapped });
+  return Response.json({
+    data: (comments ?? []).map((comment) => ({
+      ...comment,
+      author_nickname: nicknames.get(comment.user_id) ?? "익명",
+    })),
+  });
 }
 
 // POST /api/reports/:id/comments — 댓글 작성 (로그인 필요)
@@ -64,15 +56,30 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   }
 
   const supabase = getServiceClient();
+  const { data: report, error: reportError } = await supabase
+    .from("reports")
+    .select("id")
+    .eq("id", params.id)
+    .maybeSingle();
+  if (reportError) return jsonError("DB_ERROR", reportError.message, 500);
+  if (!report) return jsonError("NOT_FOUND", "제보를 찾을 수 없습니다.", 404);
+
   const { data, error } = await supabase
     .from("report_comments")
     .insert({ report_id: params.id, user_id: user.id, content })
     .select("id, report_id, user_id, content, created_at")
     .single();
 
-  if (error?.code === "23503") {
-    return jsonError("NOT_FOUND", "존재하지 않는 제보입니다.", 404);
-  }
   if (error) return jsonError("DB_ERROR", error.message, 500);
-  return Response.json({ data }, { status: 201 });
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("nickname")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  return Response.json(
+    { data: { ...data, author_nickname: profile?.nickname ?? "익명" } },
+    { status: 201 }
+  );
 }

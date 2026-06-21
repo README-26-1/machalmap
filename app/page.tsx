@@ -21,6 +21,7 @@ export default function MapPage() {
   const [center, setCenter] = useState<Coordinates>();
   const [draftLocation, setDraftLocation] = useState<Coordinates | null>(null);
   const [loading, setLoading] = useState(true);
+  const [locationReady, setLocationReady] = useState(false);
   const [reportOpen, setReportOpen] = useState(false); // 데스크톱 제보 모달
 
   const loadReports = useCallback(() => {
@@ -33,9 +34,19 @@ export default function MapPage() {
     loadReports().finally(() => setLoading(false));
 
     navigator.geolocation?.getCurrentPosition(
-      (pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {}
+      (pos) => {
+        setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocationReady(true);
+      },
+      () => {
+        setLocationReady(true);
+      },
+      { enableHighAccuracy: true, maximumAge: 30_000, timeout: 10_000 }
     );
+
+    if (!navigator.geolocation) {
+      setLocationReady(true);
+    }
   }, [loadReports]);
 
   // 해결 완료된 제보는 지도에서 숨김(데이터는 유지). 카테고리 필터도 함께 적용.
@@ -70,7 +81,7 @@ export default function MapPage() {
 
       {/* 지도 */}
       <div className="h-full w-full">
-        {loading ? (
+        {loading || !locationReady ? (
           <div className="flex h-full items-center justify-center text-ink-muted">
             지도를 불러오는 중…
           </div>

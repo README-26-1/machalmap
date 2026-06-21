@@ -6,7 +6,7 @@ create extension if not exists "pgcrypto";
 create table if not exists public.report_comments (
   id uuid primary key default gen_random_uuid(),
   report_id uuid not null references public.reports(id) on delete cascade,
-  user_id uuid references public.profiles(id) on delete set null,
+  user_id uuid not null references public.profiles(id) on delete cascade,
   content text not null,
   created_at timestamptz not null default now()
 );
