@@ -2,19 +2,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import KakaoMap from "@/components/KakaoMap";
 import CategoryFilter from "@/components/CategoryFilter";
 import StatusBadge from "@/components/StatusBadge";
 import FeedbackButtons from "@/components/FeedbackButtons";
 import { apiGet } from "@/lib/api";
-import { Category, Report } from "@/types/report";
+import { Category, Coordinates, Report } from "@/types/report";
 
 export default function MapPage() {
+  const router = useRouter();
   const [reports, setReports] = useState<Report[]>([]);
   const [category, setCategory] = useState<Category | null>(null);
   const [selected, setSelected] = useState<Report | null>(null);
-  const [center, setCenter] = useState<{ lat: number; lng: number }>();
+  const [center, setCenter] = useState<Coordinates>();
+  const [draftLocation, setDraftLocation] = useState<Coordinates | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,6 +36,14 @@ export default function MapPage() {
     () => (category ? reports.filter((r) => r.category === category) : reports),
     [reports, category]
   );
+
+  function openReportForm(point: Coordinates) {
+    const params = new URLSearchParams({
+      lat: point.lat.toFixed(6),
+      lng: point.lng.toFixed(6),
+    });
+    router.push(`/report/new?${params.toString()}`);
+  }
 
   return (
     <main className="relative h-[100dvh] w-full">
@@ -54,7 +65,19 @@ export default function MapPage() {
             지도를 불러오는 중…
           </div>
         ) : (
-          <KakaoMap reports={filtered} center={center} onMarkerClick={setSelected} />
+          <KakaoMap
+            reports={filtered}
+            center={center}
+            draftLocation={draftLocation}
+            onMarkerClick={(report) => {
+              setDraftLocation(null);
+              setSelected(report);
+            }}
+            onMapRightClick={(point) => {
+              setSelected(null);
+              setDraftLocation(point);
+            }}
+          />
         )}
       </div>
 
@@ -66,6 +89,31 @@ export default function MapPage() {
       >
         <Plus size={26} />
       </Link>
+
+      {draftLocation && (
+        <div className="absolute inset-x-4 bottom-24 z-30 mx-auto max-w-sm rounded-lg border border-line bg-white p-4 shadow-float">
+          <p className="text-sm font-semibold text-ink">이 위치에 등록하시겠습니까?</p>
+          <p className="mt-1 text-xs text-ink-muted">
+            위도 {draftLocation.lat.toFixed(5)} / 경도 {draftLocation.lng.toFixed(5)}
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              className="h-11 rounded-md bg-surface text-sm font-semibold text-ink-muted"
+              onClick={() => setDraftLocation(null)}
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              className="h-11 rounded-md bg-primary text-sm font-semibold text-white"
+              onClick={() => openReportForm(draftLocation)}
+            >
+              등록하기
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 상세 바텀시트 */}
       {selected && (

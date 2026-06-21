@@ -22,6 +22,11 @@ export type ReportStatus = (typeof STATUSES)[number];
 
 export type FeedbackType = "still" | "danger" | "resolved";
 
+export interface Coordinates {
+  readonly lat: number;
+  readonly lng: number;
+}
+
 export interface Report {
   id: string;
   user_id: string | null;

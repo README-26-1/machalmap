@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/Button";
 import { apiSend, uploadImage } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
-import { CATEGORIES, Category, Report } from "@/types/report";
+import { CATEGORIES, Category, Coordinates, Report } from "@/types/report";
+
+function parseCoordinate(value: string | null): number | null {
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 export default function NewReportPage() {
   const router = useRouter();
@@ -14,11 +20,19 @@ export default function NewReportPage() {
   const [preview, setPreview] = useState<string>("");
   const [category, setCategory] = useState<Category>(CATEGORIES[0]);
   const [description, setDescription] = useState("");
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<Coordinates | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const lat = parseCoordinate(params.get("lat"));
+    const lng = parseCoordinate(params.get("lng"));
+    if (lat === null || lng === null) return;
+    setCoords({ lat, lng });
   }, []);
 
   function pickFile(e: React.ChangeEvent<HTMLInputElement>) {
