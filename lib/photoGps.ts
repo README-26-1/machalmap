@@ -8,17 +8,12 @@ const JPEG_TYPE = "image/jpeg";
 const HEIC_EXTENSIONS = [".heic", ".heif"] as const;
 const HEIC_TYPES = ["image/heic", "image/heif"] as const;
 
+export type PhotoConversion = "none" | "converted" | "kept-original";
+
 export interface PreparedReportPhoto {
   readonly file: File;
   readonly coordinates: Coordinates | null;
-  readonly convertedFromHeic: boolean;
-}
-
-export class PhotoPreparationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "PhotoPreparationError";
-  }
+  readonly conversion: PhotoConversion;
 }
 
 export function isSupportedImageFile(file: File): boolean {
@@ -36,11 +31,14 @@ export function isHeicFile(file: File): boolean {
 export async function prepareReportPhoto(file: File): Promise<PreparedReportPhoto> {
   const coordinates = await extractPhotoCoordinates(file);
   if (!isHeicFile(file)) {
-    return { file, coordinates, convertedFromHeic: false };
+    return { file, coordinates, conversion: "none" };
   }
 
   const convertedFile = await convertHeicToJpeg(file);
-  return { file: convertedFile, coordinates, convertedFromHeic: true };
+  if (!convertedFile) {
+    return { file, coordinates, conversion: "kept-original" };
+  }
+  return { file: convertedFile, coordinates, conversion: "converted" };
 }
 
 async function extractPhotoCoordinates(file: File): Promise<Coordinates | null> {
@@ -53,7 +51,7 @@ async function extractPhotoCoordinates(file: File): Promise<Coordinates | null> 
   }
 }
 
-async function convertHeicToJpeg(file: File): Promise<File> {
+async function convertHeicToJpeg(file: File): Promise<File | null> {
   try {
     const heic2any = (await import("heic2any")).default;
     const result = await heic2any({
@@ -63,17 +61,15 @@ async function convertHeicToJpeg(file: File): Promise<File> {
     });
     const blob = Array.isArray(result) ? result[0] : result;
     if (!blob) {
-      throw new PhotoPreparationError("HEIC 사진을 JPEG로 변환하지 못했어요.");
+      return null;
     }
     return new File([blob], replaceExtension(file.name, "jpg"), {
       type: JPEG_TYPE,
       lastModified: file.lastModified,
     });
   } catch (error) {
-    if (error instanceof PhotoPreparationError) throw error;
-    throw new PhotoPreparationError(
-      "HEIC 사진 변환에 실패했어요. JPEG 또는 PNG 사진으로 다시 시도해 주세요."
-    );
+    if (error instanceof Error) return null;
+    return null;
   }
 }
 

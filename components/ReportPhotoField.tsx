@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
 import StatusPill from "@/components/StatusPill";
 import {
@@ -35,7 +35,12 @@ export default function ReportPhotoField({
   onClear,
 }: Props) {
   const [dragging, setDragging] = useState(false);
+  const [previewBroken, setPreviewBroken] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setPreviewBroken(false);
+  }, [photo?.previewUrl]);
 
   async function handleFiles(files: FileList | null): Promise<void> {
     const selectedFile = files?.[0];
@@ -98,12 +103,23 @@ export default function ReportPhotoField({
 
       {photo ? (
         <div className="relative mb-4 overflow-hidden rounded-md border border-line">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={photo.previewUrl}
-            alt="미리보기"
-            className="max-h-56 w-full object-cover"
-          />
+          {previewBroken ? (
+            <div className="flex min-h-40 w-full flex-col items-center justify-center gap-2 bg-surface px-4 py-8 text-center">
+              <ImagePlus size={28} className="text-ink-muted" aria-hidden="true" />
+              <p className="text-sm font-semibold text-ink">사진이 선택됐어요.</p>
+              <p className="max-w-full break-all text-xs text-ink-muted">
+                {photo.file.name}
+              </p>
+            </div>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photo.previewUrl}
+              alt="미리보기"
+              onError={() => setPreviewBroken(true)}
+              className="max-h-56 w-full object-cover"
+            />
+          )}
           <button
             type="button"
             onClick={clearPhoto}
@@ -159,24 +175,33 @@ export default function ReportPhotoField({
 }
 
 function buildPhotoStatus(photo: PreparedReportPhoto): StatusMessage {
-  if (photo.coordinates && photo.convertedFromHeic) {
-    return {
-      tone: "success",
-      text: "사진 GPS를 찾고 HEIC 사진을 JPEG로 변환했어요.",
-    };
+  switch (photo.conversion) {
+    case "converted":
+      return photo.coordinates
+        ? {
+            tone: "success",
+            text: "사진 GPS를 찾고 HEIC 사진을 JPEG로 변환했어요.",
+          }
+        : {
+            tone: "warning",
+            text: "HEIC 사진을 JPEG로 변환했지만 위치 정보는 없어요.",
+          };
+    case "kept-original":
+      return photo.coordinates
+        ? {
+            tone: "warning",
+            text: "사진 GPS는 찾았지만 HEIC 변환이 어려워 원본 사진으로 계속 진행해요.",
+          }
+        : {
+            tone: "warning",
+            text: "HEIC 변환이 어려워 원본 사진으로 계속 진행해요. 위치는 직접 선택해 주세요.",
+          };
+    case "none":
+      return photo.coordinates
+        ? { tone: "success", text: "사진에서 GPS 위치를 찾았어요." }
+        : {
+            tone: "warning",
+            text: "사진에 위치 정보가 없어요.",
+          };
   }
-  if (photo.coordinates) {
-    return { tone: "success", text: "사진에서 GPS 위치를 찾았어요." };
-  }
-  if (photo.convertedFromHeic) {
-    return {
-      tone: "warning",
-      text: "HEIC 사진을 JPEG로 변환했지만 위치 정보는 없어요.",
-    };
-  }
-  return {
-    tone: "warning",
-    text: "사진에 위치 정보가 없어요.",
-  };
 }
-
