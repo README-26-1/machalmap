@@ -45,7 +45,7 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto max-w-sm p-6">
-      <h1 className="mb-1 text-xl font-bold text-primary">마찰지도</h1>
+      <h1 className="mb-1 text-xl font-bold text-primary">불편핑</h1>
       <p className="mb-6 text-sm text-ink-muted">
         도시의 불편을 찍으면, 모두의 지도가 됩니다.
       </p>

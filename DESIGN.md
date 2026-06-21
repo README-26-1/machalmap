@@ -1,8 +1,8 @@
-# Machalmap Design System
+# Bulpyeonping Design System
 
 ## 1. Atmosphere & Identity
 
-마찰지도는 일상 속 불편을 빠르게 확인하고 제보하는 생활 안전 지도다. 사용감은 차분하고 실용적이어야 하며, 시민 제보가 지도와 커뮤니티 사이에서 자연스럽게 이어지는 느낌을 준다. 시그니처는 선명한 파란색 액션과 얕은 표면 깊이로, 복잡한 정보도 모바일에서 바로 스캔할 수 있게 만드는 것이다.
+불편핑은 일상 속 불편을 빠르게 확인하고 제보하는 생활 안전 지도다. 사용감은 차분하고 실용적이어야 하며, 시민 제보가 지도와 커뮤니티 사이에서 자연스럽게 이어지는 느낌을 준다. 시그니처는 선명한 파란색 액션과 얕은 표면 깊이로, 복잡한 정보도 모바일에서 바로 스캔할 수 있게 만드는 것이다.
 
 ## 2. Color
 
@@ -108,7 +108,7 @@
 
 ### Strategy
 
-Machalmap uses a mixed but restrained strategy: thin borders for persistent structure and shallow shadows for floating action surfaces.
+Bulpyeonping uses a mixed but restrained strategy: thin borders for persistent structure and shallow shadows for floating action surfaces.
 
 | Level | Value | Usage |
 |-------|-------|-------|

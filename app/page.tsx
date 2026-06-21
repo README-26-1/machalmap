@@ -70,7 +70,7 @@ export default function MapPage() {
     <main className="relative h-[100dvh] w-full md:h-[calc(100dvh-3.5rem)]">
       {/* 상단 바 (모바일 전용: 로고+로그인 / 데스크톱은 NavBar가 담당) */}
       <div className="absolute left-0 right-0 top-0 z-20 flex items-center justify-between bg-white/95 px-4 py-3 shadow-card backdrop-blur md:hidden">
-        <h1 className="text-lg font-bold text-primary">마찰지도</h1>
+        <h1 className="text-lg font-bold text-primary">불편핑</h1>
         <Link
           href="/login"
           className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:text-ink"

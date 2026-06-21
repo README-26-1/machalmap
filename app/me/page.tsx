@@ -154,8 +154,8 @@ export default function MePage() {
       </section>
 
       <p className="mt-6 text-center text-xs text-ink-muted">
-        마찰지도 v0.1.0
-        <br />© 2026 마찰지도
+        불편핑 v0.1.0
+        <br />© 2026 불편핑
       </p>
     </main>
   );
