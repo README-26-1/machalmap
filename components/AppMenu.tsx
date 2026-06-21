@@ -29,13 +29,13 @@ export default function AppMenu() {
       {open && (
         <button
           type="button"
-          className="fixed inset-0 z-40 cursor-default bg-transparent"
+          className="fixed inset-0 z-40 cursor-default bg-transparent md:hidden"
           aria-label="메뉴 닫기"
           onClick={() => setOpen(false)}
         />
       )}
 
-      <nav className="fixed bottom-4 left-4 z-50" aria-label="주요 메뉴">
+      <nav className="fixed bottom-4 left-4 z-50 md:hidden" aria-label="주요 메뉴">
         {open && (
           <div
             id={menuPanelId}

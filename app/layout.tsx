@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AppMenu from "@/components/AppMenu";
+import NavBar from "@/components/NavBar";
 
 export const metadata: Metadata = {
   title: "마찰지도 — 시민 참여형 생활 안전 지도",
@@ -20,7 +21,8 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"
         />
       </head>
-      <body className="min-h-screen">
+      <body className="min-h-screen md:pt-14">
+        <NavBar />
         {children}
         <AppMenu />
       </body>
