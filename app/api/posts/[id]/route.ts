@@ -9,29 +9,50 @@ interface Ctx {
 // GET /api/posts/:id — 글 상세 + 댓글
 export async function GET(_req: NextRequest, { params }: Ctx) {
   const supabase = getServiceClient();
+
+  // 조인(embed) 대신 단순 조회 후 닉네임을 별도로 매핑 → 관계 해석 실패에 영향받지 않음
   const { data: post, error } = await supabase
     .from("posts")
-    .select("*, profiles!posts_user_id_fkey(nickname)")
+    .select("*")
     .eq("id", params.id)
-    .single();
-  if (error || !post) return jsonError("NOT_FOUND", "글을 찾을 수 없습니다.", 404);
+    .maybeSingle();
+
+  if (error) {
+    console.error("[GET /api/posts/:id] DB error:", error);
+    return jsonError("DB_ERROR", error.message, 500);
+  }
+  if (!post) return jsonError("NOT_FOUND", "글을 찾을 수 없습니다.", 404);
 
   const { data: comments } = await supabase
     .from("comments")
-    .select("*, profiles!comments_user_id_fkey(nickname)")
+    .select("*")
     .eq("post_id", params.id)
     .order("created_at", { ascending: true });
+
+  // 작성자 닉네임 일괄 조회
+  const userIds = [
+    post.user_id,
+    ...(comments ?? []).map((comment) => comment.user_id),
+  ].filter(Boolean);
+  const { data: profiles } = userIds.length
+    ? await supabase.from("profiles").select("id, nickname").in("id", userIds)
+    : { data: [] as { id: string; nickname: string }[] };
+  const nick = (id: string) =>
+    profiles?.find((profile) => profile.id === id)?.nickname ?? "익명";
 
   let poll = null;
   const { data: pollData, error: pollError } = await supabase
     .from("polls")
-    .select("id, post_id, question, poll_options(id, poll_id, label)")
+    .select("id, post_id, question")
     .eq("post_id", params.id)
     .maybeSingle();
 
   if (pollData && !pollError) {
-    const options = (pollData as any).poll_options ?? [];
-    const optionIds = options.map((option: any) => option.id);
+    const { data: options } = await supabase
+      .from("poll_options")
+      .select("id, poll_id, label")
+      .eq("poll_id", pollData.id);
+    const optionIds = (options ?? []).map((option) => option.id);
     const votesResult =
       optionIds.length > 0
         ? await supabase.from("poll_votes").select("option_id").in("option_id", optionIds)
@@ -44,7 +65,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       id: pollData.id,
       post_id: pollData.post_id,
       question: pollData.question,
-      options: options.map((option: any) => ({
+      options: (options ?? []).map((option) => ({
         id: option.id,
         poll_id: option.poll_id,
         label: option.label,
@@ -56,11 +77,11 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   return Response.json({
     data: {
       ...post,
-      author_nickname: (post as any).profiles?.nickname ?? "익명",
+      author_nickname: nick(post.user_id),
       poll,
-      comments: (comments ?? []).map((c: any) => ({
-        ...c,
-        author_nickname: c.profiles?.nickname ?? "익명",
+      comments: (comments ?? []).map((comment) => ({
+        ...comment,
+        author_nickname: nick(comment.user_id),
       })),
     },
   });

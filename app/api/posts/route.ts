@@ -5,24 +5,34 @@ import { getUserFromRequest, jsonError } from "@/lib/auth";
 // GET /api/posts — 커뮤니티 글 목록
 export async function GET() {
   const supabase = getServiceClient();
-  const { data, error } = await supabase
+  const { data: posts, error } = await supabase
     .from("posts")
-    .select("*, profiles!posts_user_id_fkey(nickname)")
+    .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) return jsonError("DB_ERROR", error.message, 500);
-  const postIds = (data ?? []).map((p: any) => p.id);
+  if (error) {
+    console.error("[GET /api/posts] DB error:", error);
+    return jsonError("DB_ERROR", error.message, 500);
+  }
+
+  const userIds = (posts ?? []).map((p) => p.user_id).filter(Boolean);
+  const { data: profiles } = userIds.length
+    ? await supabase.from("profiles").select("id, nickname").in("id", userIds)
+    : { data: [] as { id: string; nickname: string }[] };
+
+  const postIds = (posts ?? []).map((p) => p.id);
   const pollsResult =
     postIds.length > 0
       ? await supabase.from("polls").select("id, post_id, question").in("post_id", postIds)
       : { data: [], error: null };
   const polls = pollsResult.error?.code === "42P01" ? [] : pollsResult.data ?? [];
 
-  const mapped = (data ?? []).map((p: any) => {
+  const mapped = (posts ?? []).map((p) => {
     const poll = polls.find((item: any) => item.post_id === p.id);
     return {
       ...p,
-      author_nickname: p.profiles?.nickname ?? "익명",
+      author_nickname:
+        profiles?.find((profile) => profile.id === p.user_id)?.nickname ?? "익명",
       poll: poll ? { ...poll, options: [] } : null,
     };
   });
