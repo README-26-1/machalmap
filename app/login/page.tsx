@@ -29,13 +29,20 @@ export default function LoginPage() {
   async function emailAuth() {
     setBusy(true);
     try {
-      const fn =
+      const { data, error } =
         mode === "login"
-          ? supabase.auth.signInWithPassword({ email, password })
-          : supabase.auth.signUp({ email, password });
-      const { error } = await fn;
+          ? await supabase.auth.signInWithPassword({ email, password })
+          : await supabase.auth.signUp({ email, password });
       if (error) throw error;
+
+      if (mode === "signup" && !data.session) {
+        alert("인증 메일을 보냈어요. 이메일 인증을 완료한 뒤 로그인해 주세요.");
+        setMode("login");
+        return;
+      }
+
       router.push("/");
+      router.refresh();
     } catch (e) {
       alert((e as Error).message);
     } finally {
