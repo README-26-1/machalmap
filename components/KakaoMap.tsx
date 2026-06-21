@@ -1,19 +1,66 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Report } from "@/types/report";
+import { Coordinates, Report } from "@/types/report";
 import { markerColor } from "@/lib/markerColor";
+
+interface KakaoLatLng {
+  getLat(): number;
+  getLng(): number;
+}
+
+type KakaoMapInstance = object;
+
+interface KakaoMarker {
+  setMap(map: KakaoMapInstance | null): void;
+}
+
+interface KakaoMouseEvent {
+  latLng: KakaoLatLng;
+}
+
+interface KakaoMapsApi {
+  load(callback: () => void): void;
+  LatLng: new (lat: number, lng: number) => KakaoLatLng;
+  Map: new (
+    container: HTMLElement,
+    options: { readonly center: KakaoLatLng; readonly level: number }
+  ) => KakaoMapInstance;
+  Marker: new (options: {
+    readonly position: KakaoLatLng;
+    readonly image?: KakaoMarkerImage;
+  }) => KakaoMarker;
+  MarkerImage: new (src: string, size: KakaoSize) => KakaoMarkerImage;
+  Size: new (width: number, height: number) => KakaoSize;
+  event: {
+    addListener(
+      target: KakaoMapInstance | KakaoMarker,
+      type: "click" | "rightclick",
+      handler: (event: KakaoMouseEvent) => void
+    ): void;
+  };
+}
+
+interface KakaoApi {
+  maps: KakaoMapsApi;
+}
+
+type KakaoMarkerImage = object;
+
+type KakaoSize = object;
 
 declare global {
   interface Window {
-    kakao: any;
+    kakao?: KakaoApi;
   }
 }
 
 interface Props {
   reports: Report[];
-  center?: { lat: number; lng: number };
+  center?: Coordinates;
+  draftLocation?: Coordinates | null;
   onMarkerClick?: (report: Report) => void;
+  onMapRightClick?: (point: Coordinates) => void;
 }
 
 const SDK_ID = "kakao-maps-sdk";
@@ -25,7 +72,13 @@ function loadSdk(): Promise<void> {
     if (!key) return reject(new Error("카카오맵 키가 없습니다."));
 
     const existing = document.getElementById(SDK_ID) as HTMLScriptElement | null;
-    const onLoad = () => window.kakao.maps.load(() => resolve());
+    const onLoad = () => {
+      if (!window.kakao?.maps) {
+        reject(new Error("카카오맵 로드 실패"));
+        return;
+      }
+      window.kakao.maps.load(() => resolve());
+    };
 
     if (existing) {
       existing.addEventListener("load", onLoad);
@@ -40,10 +93,20 @@ function loadSdk(): Promise<void> {
   });
 }
 
-export default function KakaoMap({ reports, center, onMarkerClick }: Props) {
+export default function KakaoMap({
+  reports,
+  center,
+  draftLocation,
+  onMarkerClick,
+  onMapRightClick,
+}: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
+  const mapRef = useRef<KakaoMapInstance | null>(null);
+  const markersRef = useRef<KakaoMarker[]>([]);
+  const draftMarkerRef = useRef<KakaoMarker | null>(null);
+  const rightClickRef = useRef<Props["onMapRightClick"]>(undefined);
+
+  rightClickRef.current = onMapRightClick;
 
   // 지도 초기화
   useEffect(() => {
@@ -52,13 +115,23 @@ export default function KakaoMap({ reports, center, onMarkerClick }: Props) {
       .then(() => {
         if (!mounted || !ref.current) return;
         const { kakao } = window;
+        if (!kakao) return;
         const c = new kakao.maps.LatLng(
           center?.lat ?? 37.5665,
           center?.lng ?? 126.978
         );
-        mapRef.current = new kakao.maps.Map(ref.current, { center: c, level: 4 });
+        const map = new kakao.maps.Map(ref.current, { center: c, level: 4 });
+        mapRef.current = map;
+        kakao.maps.event.addListener(map, "rightclick", (event) => {
+          rightClickRef.current?.({
+            lat: event.latLng.getLat(),
+            lng: event.latLng.getLng(),
+          });
+        });
       })
-      .catch((e) => console.error(e));
+      .catch((e: unknown) => {
+        if (e instanceof Error) console.error(e);
+      });
     return () => {
       mounted = false;
     };
@@ -90,6 +163,23 @@ export default function KakaoMap({ reports, center, onMarkerClick }: Props) {
       markersRef.current.push(marker);
     });
   }, [reports, onMarkerClick]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !window.kakao?.maps) return;
+    const { kakao } = window;
+
+    draftMarkerRef.current?.setMap(null);
+    draftMarkerRef.current = null;
+
+    if (!draftLocation) return;
+
+    const marker = new kakao.maps.Marker({
+      position: new kakao.maps.LatLng(draftLocation.lat, draftLocation.lng),
+    });
+    marker.setMap(map);
+    draftMarkerRef.current = marker;
+  }, [draftLocation]);
 
   return <div ref={ref} className="h-full w-full" />;
 }
