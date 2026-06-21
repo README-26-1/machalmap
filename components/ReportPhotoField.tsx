@@ -186,16 +186,6 @@ function buildPhotoStatus(photo: PreparedReportPhoto): StatusMessage {
             tone: "warning",
             text: "HEIC 사진을 JPEG로 변환했지만 위치 정보는 없어요.",
           };
-    case "kept-original":
-      return photo.coordinates
-        ? {
-            tone: "warning",
-            text: "사진 GPS는 찾았지만 HEIC 변환이 어려워 원본 사진으로 계속 진행해요.",
-          }
-        : {
-            tone: "warning",
-            text: "HEIC 변환이 어려워 원본 사진으로 계속 진행해요. 위치는 직접 선택해 주세요.",
-          };
     case "none":
       return photo.coordinates
         ? { tone: "success", text: "사진에서 GPS 위치를 찾았어요." }

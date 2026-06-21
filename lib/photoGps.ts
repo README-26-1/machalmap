@@ -8,7 +8,7 @@ const JPEG_TYPE = "image/jpeg";
 const HEIC_EXTENSIONS = [".heic", ".heif"] as const;
 const HEIC_TYPES = ["image/heic", "image/heif"] as const;
 
-export type PhotoConversion = "none" | "converted" | "kept-original";
+export type PhotoConversion = "none" | "converted";
 
 export interface PreparedReportPhoto {
   readonly file: File;
@@ -36,7 +36,9 @@ export async function prepareReportPhoto(file: File): Promise<PreparedReportPhot
 
   const convertedFile = await convertHeicToJpeg(file);
   if (!convertedFile) {
-    return { file, coordinates, conversion: "kept-original" };
+    throw new Error(
+      "HEIC 사진을 JPEG로 변환하지 못했어요. 사진 앱에서 JPG로 저장한 뒤 다시 선택해 주세요."
+    );
   }
   return { file: convertedFile, coordinates, conversion: "converted" };
 }
@@ -53,22 +55,18 @@ async function extractPhotoCoordinates(file: File): Promise<Coordinates | null> 
 
 async function convertHeicToJpeg(file: File): Promise<File | null> {
   try {
-    const heic2any = (await import("heic2any")).default;
-    const result = await heic2any({
+    const { heicTo } = await import("heic-to");
+    const blob = await heicTo({
       blob: file,
-      toType: JPEG_TYPE,
+      type: JPEG_TYPE,
       quality: 0.92,
     });
-    const blob = Array.isArray(result) ? result[0] : result;
-    if (!blob) {
-      return null;
-    }
     return new File([blob], replaceExtension(file.name, "jpg"), {
       type: JPEG_TYPE,
       lastModified: file.lastModified,
     });
   } catch (error) {
-    if (error instanceof Error) return null;
+    console.error("[HEIC conversion] JPEG 변환 실패:", error);
     return null;
   }
 }
