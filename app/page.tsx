@@ -6,9 +6,8 @@ import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import KakaoMap from "@/components/KakaoMap";
 import CategoryFilter from "@/components/CategoryFilter";
-import StatusBadge from "@/components/StatusBadge";
-import FeedbackButtons from "@/components/FeedbackButtons";
 import ReportForm from "@/components/ReportForm";
+import SelectedReportDetail from "@/components/SelectedReportDetail";
 import { apiGet } from "@/lib/api";
 import { Category, Coordinates, Report } from "@/types/report";
 
@@ -170,38 +169,12 @@ export default function MapPage() {
         </div>
       )}
 
-      {/* 상세 바텀시트 */}
       {selected && (
-        <div className="absolute inset-x-0 bottom-0 z-30 rounded-t-lg bg-white p-4 shadow-float">
-          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold">{selected.category}</span>
-              <StatusBadge status={selected.status} />
-            </div>
-            <button onClick={() => setSelected(null)} className="text-ink-muted">
-              닫기
-            </button>
-          </div>
-          {selected.image_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={selected.image_url}
-              alt={selected.category}
-              className="mt-3 max-h-48 w-full rounded-md object-cover"
-            />
-          )}
-          <p className="mt-2 text-sm text-ink">{selected.description}</p>
-          <p className="mt-1 text-xs text-ink-muted">
-            {new Date(selected.created_at).toLocaleString("ko-KR")}
-          </p>
-          <div className="mt-3">
-            <FeedbackButtons
-              report={selected}
-              onUpdated={(c) => setSelected({ ...selected, ...c })}
-            />
-          </div>
-        </div>
+        <SelectedReportDetail
+          report={selected}
+          onClose={() => setSelected(null)}
+          onUpdated={(counts) => setSelected({ ...selected, ...counts })}
+        />
       )}
     </main>
   );
