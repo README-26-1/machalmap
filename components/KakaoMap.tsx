@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Coordinates, Report } from "@/types/report";
 import { markerColor } from "@/lib/markerColor";
 
@@ -137,6 +137,7 @@ export default function KakaoMap({
   const draftMarkerRef = useRef<KakaoMarker | null>(null);
   const clickRef = useRef<Props["onMapClick"]>(undefined);
   const rightClickRef = useRef<Props["onMapRightClick"]>(undefined);
+  const [ready, setReady] = useState(false); // 지도 초기화 완료 여부
 
   clickRef.current = onMapClick;
   rightClickRef.current = onMapRightClick;
@@ -167,6 +168,7 @@ export default function KakaoMap({
             lng: event.latLng.getLng(),
           });
         });
+        setReady(true); // 지도 준비 완료 → 마커/포커스 effect 재실행 유도
       })
       .catch((e: unknown) => {
         if (e instanceof Error) console.error(e);
@@ -201,7 +203,7 @@ export default function KakaoMap({
       kakao.maps.event.addListener(marker, "click", () => onMarkerClick?.(r));
       markersRef.current.push(marker);
     });
-  }, [reports, onMarkerClick]);
+  }, [reports, onMarkerClick, ready]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -218,14 +220,14 @@ export default function KakaoMap({
     });
     marker.setMap(map);
     draftMarkerRef.current = marker;
-  }, [draftLocation]);
+  }, [draftLocation, ready]);
 
   // 검색 등으로 focus가 바뀌면 지도를 그 위치로 이동
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !window.kakao?.maps || !focus) return;
     map.panTo(new window.kakao.maps.LatLng(focus.lat, focus.lng));
-  }, [focus]);
+  }, [focus, ready]);
 
   return <div ref={ref} className="h-full w-full" />;
 }
