@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { Heart } from "lucide-react";
 import Button from "@/components/Button";
 import { apiGet, apiSend } from "@/lib/api";
-import { Comment, Post } from "@/types/community";
+import { Comment, PollOption, Post } from "@/types/community";
 
 type PostDetail = Post & { comments: Comment[] };
 
@@ -49,6 +49,15 @@ export default function PostDetailPage() {
     }
   }
 
+  async function vote(option: PollOption) {
+    try {
+      await apiSend(`/api/posts/${id}/poll`, "POST", { option_id: option.id });
+      await load();
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  }
+
   if (!post) return <main className="p-6 text-ink-muted">불러오는 중…</main>;
 
   return (
@@ -65,6 +74,33 @@ export default function PostDetailPage() {
       >
         <Heart size={15} /> {likeCount}
       </button>
+
+      {post.poll && (
+        <section className="mt-5 rounded-md bg-surface p-4 shadow-card">
+          <h2 className="mb-3 text-sm font-semibold">{post.poll.question}</h2>
+          <div className="space-y-2">
+            {post.poll.options.map((option) => {
+              const total = post.poll?.options.reduce((sum, item) => sum + item.vote_count, 0) ?? 0;
+              const percent = total > 0 ? Math.round((option.vote_count / total) * 100) : 0;
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => vote(option)}
+                  className="w-full rounded-md border border-line bg-white p-3 text-left"
+                >
+                  <div className="flex items-center justify-between text-sm">
+                    <span>{option.label}</span>
+                    <span className="text-ink-muted">{option.vote_count}표</span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-line">
+                    <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <hr className="my-5 border-line" />
 

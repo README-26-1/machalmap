@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import AuthLink from "@/components/AuthLink";
 import KakaoMap from "@/components/KakaoMap";
 import CategoryFilter from "@/components/CategoryFilter";
 import StatusBadge from "@/components/StatusBadge";
@@ -40,9 +41,7 @@ export default function MapPage() {
       <div className="absolute left-0 right-0 top-0 z-20 bg-white/95 px-4 py-3 shadow-card backdrop-blur">
         <div className="mb-2 flex items-center justify-between">
           <h1 className="text-lg font-bold text-primary">마찰지도</h1>
-          <Link href="/login" className="text-sm text-ink-muted">
-            로그인
-          </Link>
+          <AuthLink />
         </div>
         <CategoryFilter value={category} onChange={setCategory} />
       </div>

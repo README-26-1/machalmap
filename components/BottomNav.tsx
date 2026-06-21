@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Map, Users, User } from "lucide-react";
+import { Map, MessageSquare, Sparkles, User, Users } from "lucide-react";
 
 const items = [
   { href: "/", label: "지도", icon: Map },
+  { href: "/recommendations", label: "추천", icon: Sparkles },
   { href: "/community", label: "커뮤니티", icon: Users },
+  { href: "/messages", label: "귓속말", icon: MessageSquare },
   { href: "/me", label: "마이", icon: User },
 ];
 

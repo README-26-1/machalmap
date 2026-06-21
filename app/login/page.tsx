@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
 
   async function google() {
     await supabase.auth.signInWithOAuth({
@@ -21,14 +22,26 @@ export default function LoginPage() {
 
   async function emailAuth() {
     setBusy(true);
+    setMessage("");
     try {
-      const fn =
+      const { data, error } =
         mode === "login"
-          ? supabase.auth.signInWithPassword({ email, password })
-          : supabase.auth.signUp({ email, password });
-      const { error } = await fn;
+          ? await supabase.auth.signInWithPassword({ email, password })
+          : await supabase.auth.signUp({ email, password });
       if (error) throw error;
-      router.push("/");
+
+      if (data.session) {
+        router.replace("/");
+        router.refresh();
+        return;
+      }
+
+      if (mode === "signup") {
+        setMessage("가입 확인 메일을 보냈습니다. 이메일 인증 후 로그인해 주세요.");
+        setMode("login");
+      } else {
+        setMessage("로그인 세션을 만들지 못했습니다. 이메일 인증 여부를 확인해 주세요.");
+      }
     } catch (e) {
       alert((e as Error).message);
     } finally {
@@ -66,6 +79,9 @@ export default function LoginPage() {
       <Button onClick={emailAuth} disabled={busy} className="w-full">
         {mode === "login" ? "로그인" : "회원가입"}
       </Button>
+      {message && (
+        <p className="mt-3 rounded-md bg-surface p-3 text-sm text-ink-muted">{message}</p>
+      )}
 
       <button
         onClick={() => setMode(mode === "login" ? "signup" : "login")}
