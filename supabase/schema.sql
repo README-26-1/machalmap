@@ -96,4 +96,18 @@ create policy "likes delete own" on likes for delete using (auth.uid() = user_id
 create policy "feedbacks read all" on feedbacks for select using (true);
 create policy "feedbacks insert" on feedbacks for insert with check (true);
 
+-- 7. interest_areas (관심 지역)
+create table if not exists interest_areas (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  label text not null,
+  lat double precision not null,
+  lng double precision not null,
+  created_at timestamptz not null default now()
+);
+alter table interest_areas enable row level security;
+create policy "interest read own" on interest_areas for select using (auth.uid() = user_id);
+create policy "interest insert own" on interest_areas for insert with check (auth.uid() = user_id);
+create policy "interest delete own" on interest_areas for delete using (auth.uid() = user_id);
+
 -- Storage 버킷은 대시보드에서 'report-images' (public) 으로 생성.

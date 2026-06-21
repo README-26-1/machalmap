@@ -28,5 +28,24 @@ export async function GET(req: NextRequest) {
     profile = data;
   }
 
-  return Response.json({ data: profile });
+  // 내 제보 수 / 내 피드백 수 집계
+  const [reportRes, feedbackRes] = await Promise.all([
+    supabase
+      .from("reports")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id),
+    supabase
+      .from("feedbacks")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id),
+  ]);
+
+  return Response.json({
+    data: {
+      ...profile,
+      email: user.email ?? null,
+      report_count: reportRes.count ?? 0,
+      feedback_count: feedbackRes.count ?? 0,
+    },
+  });
 }
