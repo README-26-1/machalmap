@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
 import FeedbackButtons from "@/components/FeedbackButtons";
+import ReportImage from "@/components/ReportImage";
 import { apiGet } from "@/lib/api";
 import { Report } from "@/types/report";
 
@@ -27,14 +28,12 @@ export default function ReportDetailPage() {
         <span className="font-semibold">{report.category}</span>
         <StatusBadge status={report.status} />
       </div>
-      {report.image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={report.image_url}
-          alt={report.category}
-          className="mt-3 w-full rounded-md object-cover"
-        />
-      )}
+      <ReportImage
+        src={report.image_url}
+        alt={report.category}
+        imageClassName="mt-3 max-h-[55dvh] w-full rounded-md bg-surface object-contain"
+        fallbackClassName="mt-3 min-h-48 w-full rounded-md border border-line"
+      />
       <p className="mt-3 text-sm">{report.description}</p>
       <p className="mt-1 text-xs text-ink-muted">
         {new Date(report.created_at).toLocaleString("ko-KR")}

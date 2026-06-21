@@ -110,4 +110,24 @@ create policy "interest read own" on interest_areas for select using (auth.uid()
 create policy "interest insert own" on interest_areas for insert with check (auth.uid() = user_id);
 create policy "interest delete own" on interest_areas for delete using (auth.uid() = user_id);
 
+-- 8. report_comments (제보별 댓글)
+create table if not exists report_comments (
+  id uuid primary key default gen_random_uuid(),
+  report_id uuid not null references reports(id) on delete cascade,
+  user_id uuid references profiles(id) on delete set null,
+  content text not null constraint report_comments_content_length_check
+    check (char_length(btrim(content)) between 1 and 500),
+  created_at timestamptz not null default now()
+);
+create index if not exists report_comments_report_created_idx
+  on report_comments(report_id, created_at, id);
+alter table report_comments enable row level security;
+create policy "report comments read all" on report_comments for select using (true);
+create policy "report comments insert own" on report_comments for insert to authenticated
+  with check (auth.uid() = user_id);
+create policy "report comments delete own" on report_comments for delete to authenticated
+  using (auth.uid() = user_id);
+grant select on table report_comments to anon, authenticated;
+grant insert, delete on table report_comments to authenticated;
+
 -- Storage 버킷은 대시보드에서 'report-images' (public) 으로 생성.

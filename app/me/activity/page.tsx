@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import ReportImage from "@/components/ReportImage";
 import StatusBadge from "@/components/StatusBadge";
 import Button from "@/components/Button";
 import { apiGet } from "@/lib/api";
@@ -66,18 +67,13 @@ export default function ActivityPage() {
                 href={`/report/${r.id}`}
                 className="flex gap-3 rounded-lg border border-line bg-white p-3 shadow-card transition hover:bg-surface"
               >
-                {r.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={r.image_url}
-                    alt={r.category}
-                    className="h-16 w-16 shrink-0 rounded-md object-cover"
-                  />
-                ) : (
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-surface text-xs text-ink-muted">
-                    사진 없음
-                  </div>
-                )}
+                <ReportImage
+                  src={r.image_url}
+                  alt={r.category}
+                  imageClassName="h-16 w-16 shrink-0 rounded-md object-cover"
+                  fallbackClassName="h-16 w-16 shrink-0 rounded-md border border-line"
+                  compact
+                />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-ink">{r.category}</span>

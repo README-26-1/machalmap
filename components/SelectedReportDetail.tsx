@@ -2,6 +2,8 @@
 
 import { X } from "lucide-react";
 import FeedbackButtons from "@/components/FeedbackButtons";
+import ReportComments from "@/components/ReportComments";
+import ReportImage from "@/components/ReportImage";
 import StatusBadge from "@/components/StatusBadge";
 import type { Report } from "@/types/report";
 
@@ -18,34 +20,24 @@ interface Props {
 
 export default function SelectedReportDetail({ report, onClose, onUpdated }: Props) {
   return (
-    <>
-      <section
-        aria-label="제보 상세"
-        className="absolute inset-x-0 bottom-0 z-30 rounded-t-lg bg-white p-4 shadow-float md:hidden"
-      >
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line" />
-        <ReportHeader report={report} onClose={onClose} closeLabel="닫기" />
-        <ReportBody report={report} imageClassName="max-h-52 object-contain" />
-        <div className="mt-3">
-          <FeedbackButtons report={report} onUpdated={onUpdated} />
+    <aside
+      aria-label="제보 상세"
+      className="absolute inset-x-0 bottom-0 z-30 flex max-h-[calc(100dvh-1rem)] flex-col rounded-t-lg bg-white shadow-float md:bottom-5 md:left-auto md:right-5 md:top-5 md:max-h-none md:w-[min(420px,calc(100vw-2.5rem))] md:rounded-lg md:border md:border-line"
+    >
+      <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-line md:hidden" />
+      <div className="shrink-0 px-4 py-3 md:border-b md:border-line">
+        <ReportHeader report={report} onClose={onClose} closeLabel="상세 닫기" />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 md:py-4">
+        <ReportBody report={report} imageClassName="max-h-[44dvh] object-contain" />
+        <div className="mt-4 border-t border-line pt-4">
+          <ReportComments reportId={report.id} />
         </div>
-      </section>
-
-      <aside
-        aria-label="제보 상세"
-        className="absolute bottom-5 right-5 top-5 z-30 hidden w-[min(420px,calc(100vw-2.5rem))] flex-col rounded-lg border border-line bg-white shadow-float md:flex"
-      >
-        <div className="shrink-0 border-b border-line px-4 py-3">
-          <ReportHeader report={report} onClose={onClose} closeLabel="상세 닫기" />
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-          <ReportBody report={report} imageClassName="max-h-[44dvh] object-contain" />
-        </div>
-        <div className="shrink-0 border-t border-line p-4">
-          <FeedbackButtons report={report} onUpdated={onUpdated} />
-        </div>
-      </aside>
-    </>
+      </div>
+      <div className="shrink-0 border-t border-line p-4">
+        <FeedbackButtons report={report} onUpdated={onUpdated} />
+      </div>
+    </aside>
   );
 }
 
@@ -82,14 +74,12 @@ interface BodyProps {
 function ReportBody({ report, imageClassName }: BodyProps) {
   return (
     <>
-      {report.image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={report.image_url}
-          alt={report.category}
-          className={`mt-3 w-full rounded-md bg-surface ${imageClassName}`}
-        />
-      )}
+      <ReportImage
+        src={report.image_url}
+        alt={report.category}
+        imageClassName={`mt-3 w-full rounded-md bg-surface ${imageClassName}`}
+        fallbackClassName="mt-3 min-h-40 w-full rounded-md border border-line"
+      />
       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-ink">{report.description}</p>
       <p className="mt-2 text-xs text-ink-muted">
         {new Date(report.created_at).toLocaleString("ko-KR")}
