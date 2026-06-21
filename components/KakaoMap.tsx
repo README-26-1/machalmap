@@ -9,10 +9,36 @@ interface KakaoLatLng {
   getLng(): number;
 }
 
-type KakaoMapInstance = object;
+interface KakaoMapInstance {
+  setCenter(latlng: KakaoLatLng): void;
+  panTo(latlng: KakaoLatLng): void;
+}
 
 interface KakaoMarker {
   setMap(map: KakaoMapInstance | null): void;
+}
+
+// 장소 검색(services 라이브러리)
+export interface KakaoPlace {
+  place_name: string;
+  address_name: string;
+  road_address_name: string;
+  x: string; // 경도(lng)
+  y: string; // 위도(lat)
+}
+
+type KakaoPlacesStatus = "OK" | "ZERO_RESULT" | "ERROR";
+
+interface KakaoPlaces {
+  keywordSearch(
+    query: string,
+    callback: (data: KakaoPlace[], status: KakaoPlacesStatus) => void
+  ): void;
+}
+
+interface KakaoServices {
+  Places: new () => KakaoPlaces;
+  Status: { OK: KakaoPlacesStatus };
 }
 
 interface KakaoMouseEvent {
@@ -32,6 +58,7 @@ interface KakaoMapsApi {
   }) => KakaoMarker;
   MarkerImage: new (src: string, size: KakaoSize) => KakaoMarkerImage;
   Size: new (width: number, height: number) => KakaoSize;
+  services?: KakaoServices;
   event: {
     addListener(
       target: KakaoMapInstance | KakaoMarker,
@@ -61,6 +88,8 @@ interface Props {
   draftLocation?: Coordinates | null;
   onMarkerClick?: (report: Report) => void;
   onMapRightClick?: (point: Coordinates) => void;
+  onMapClick?: (point: Coordinates) => void;
+  focus?: Coordinates | null; // 변경 시 해당 좌표로 지도를 이동
 }
 
 const SDK_ID = "kakao-maps-sdk";
@@ -86,7 +115,7 @@ function loadSdk(): Promise<void> {
     }
     const script = document.createElement("script");
     script.id = SDK_ID;
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${key}&autoload=false`;
+    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${key}&autoload=false&libraries=services`;
     script.onload = onLoad;
     script.onerror = () => reject(new Error("카카오맵 로드 실패"));
     document.head.appendChild(script);
@@ -99,14 +128,18 @@ export default function KakaoMap({
   draftLocation,
   onMarkerClick,
   onMapRightClick,
+  onMapClick,
+  focus,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<KakaoMapInstance | null>(null);
   const markersRef = useRef<KakaoMarker[]>([]);
   const draftMarkerRef = useRef<KakaoMarker | null>(null);
   const rightClickRef = useRef<Props["onMapRightClick"]>(undefined);
+  const clickRef = useRef<Props["onMapClick"]>(undefined);
 
   rightClickRef.current = onMapRightClick;
+  clickRef.current = onMapClick;
 
   // 지도 초기화
   useEffect(() => {
@@ -124,6 +157,12 @@ export default function KakaoMap({
         mapRef.current = map;
         kakao.maps.event.addListener(map, "rightclick", (event) => {
           rightClickRef.current?.({
+            lat: event.latLng.getLat(),
+            lng: event.latLng.getLng(),
+          });
+        });
+        kakao.maps.event.addListener(map, "click", (event) => {
+          clickRef.current?.({
             lat: event.latLng.getLat(),
             lng: event.latLng.getLng(),
           });
@@ -180,6 +219,13 @@ export default function KakaoMap({
     marker.setMap(map);
     draftMarkerRef.current = marker;
   }, [draftLocation]);
+
+  // 검색 등으로 focus가 바뀌면 지도를 그 위치로 이동
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !window.kakao?.maps || !focus) return;
+    map.panTo(new window.kakao.maps.LatLng(focus.lat, focus.lng));
+  }, [focus]);
 
   return <div ref={ref} className="h-full w-full" />;
 }
