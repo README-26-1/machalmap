@@ -38,7 +38,7 @@ export default function NavBar() {
     <header className="fixed inset-x-0 top-0 z-40 hidden h-14 items-center border-b border-line bg-white/95 backdrop-blur md:flex">
       <div className="mx-auto flex w-full max-w-6xl items-center px-6">
         <Link href="/" className="text-lg font-bold text-primary">
-          마찰지도
+          불편핑
         </Link>
 
         <nav className="ml-8 flex items-center gap-1" aria-label="주요 메뉴">

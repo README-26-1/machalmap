@@ -4,7 +4,7 @@ import AppMenu from "@/components/AppMenu";
 import NavBar from "@/components/NavBar";
 
 export const metadata: Metadata = {
-  title: "마찰지도 — 시민 참여형 생활 안전 지도",
+  title: "불편핑 — 시민 참여형 생활 안전 지도",
   description: "일상 속 불편과 위험을 사진으로 제보하면 지도 위에 실시간으로 공유됩니다.",
 };
 
