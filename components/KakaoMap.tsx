@@ -233,7 +233,7 @@ export default function KakaoMap({
     const map = mapRef.current;
     if (!map || !window.kakao?.maps || !center) return;
     map.panTo(new window.kakao.maps.LatLng(center.lat, center.lng));
-  }, [center]);
+  }, [center, ready]);
 
   return <div ref={ref} className="h-full w-full" />;
 }
