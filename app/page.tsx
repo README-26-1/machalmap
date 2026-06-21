@@ -121,7 +121,7 @@ export default function MapPage() {
             role="dialog"
             aria-modal="true"
             aria-label="제보하기"
-            className="relative w-full max-w-md rounded-lg bg-white p-5 shadow-float"
+            className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-lg bg-white p-5 shadow-float"
           >
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-bold">제보하기</h2>

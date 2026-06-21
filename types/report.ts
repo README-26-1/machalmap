@@ -10,6 +10,10 @@ export const CATEGORIES = [
 
 export type Category = (typeof CATEGORIES)[number];
 
+export function isCategory(value: unknown): value is Category {
+  return typeof value === "string" && CATEGORIES.some((category) => category === value);
+}
+
 export const STATUSES = [
   "확인 필요",
   "지속 중",

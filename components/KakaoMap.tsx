@@ -87,6 +87,7 @@ interface Props {
   center?: Coordinates;
   draftLocation?: Coordinates | null;
   onMarkerClick?: (report: Report) => void;
+  onMapClick?: (point: Coordinates) => void;
   onMapRightClick?: (point: Coordinates) => void;
   onMapClick?: (point: Coordinates) => void;
   focus?: Coordinates | null; // 변경 시 해당 좌표로 지도를 이동
@@ -127,6 +128,7 @@ export default function KakaoMap({
   center,
   draftLocation,
   onMarkerClick,
+  onMapClick,
   onMapRightClick,
   onMapClick,
   focus,
@@ -135,9 +137,11 @@ export default function KakaoMap({
   const mapRef = useRef<KakaoMapInstance | null>(null);
   const markersRef = useRef<KakaoMarker[]>([]);
   const draftMarkerRef = useRef<KakaoMarker | null>(null);
+  const clickRef = useRef<Props["onMapClick"]>(undefined);
   const rightClickRef = useRef<Props["onMapRightClick"]>(undefined);
   const clickRef = useRef<Props["onMapClick"]>(undefined);
 
+  clickRef.current = onMapClick;
   rightClickRef.current = onMapRightClick;
   clickRef.current = onMapClick;
 
@@ -155,6 +159,12 @@ export default function KakaoMap({
         );
         const map = new kakao.maps.Map(ref.current, { center: c, level: 4 });
         mapRef.current = map;
+        kakao.maps.event.addListener(map, "click", (event) => {
+          clickRef.current?.({
+            lat: event.latLng.getLat(),
+            lng: event.latLng.getLng(),
+          });
+        });
         kakao.maps.event.addListener(map, "rightclick", (event) => {
           rightClickRef.current?.({
             lat: event.latLng.getLat(),
