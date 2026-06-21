@@ -100,10 +100,12 @@ create table if not exists report_comments (
   id uuid primary key default gen_random_uuid(),
   report_id uuid not null references reports(id) on delete cascade,
   user_id uuid not null references profiles(id) on delete cascade,
-  content text not null,
+  content text not null constraint report_comments_content_length_check
+    check (char_length(btrim(content)) between 1 and 500),
   created_at timestamptz not null default now()
 );
-create index if not exists report_comments_report_idx on report_comments(report_id, created_at);
+create index if not exists report_comments_report_created_idx
+  on report_comments(report_id, created_at, id);
 
 create table if not exists report_likes (
   report_id uuid not null references reports(id) on delete cascade,
@@ -116,8 +118,12 @@ alter table report_comments enable row level security;
 alter table report_likes enable row level security;
 
 create policy "report comments read all" on report_comments for select using (true);
-create policy "report comments insert auth" on report_comments for insert with check (auth.uid() = user_id);
-create policy "report comments delete own" on report_comments for delete using (auth.uid() = user_id);
+create policy "report comments insert auth" on report_comments for insert to authenticated
+  with check (auth.uid() = user_id);
+create policy "report comments delete own" on report_comments for delete to authenticated
+  using (auth.uid() = user_id);
+grant select on table report_comments to anon, authenticated;
+grant insert, delete on table report_comments to authenticated;
 
 create policy "report likes read all" on report_likes for select using (true);
 create policy "report likes insert auth" on report_likes for insert with check (auth.uid() = user_id);

@@ -88,13 +88,15 @@ export default function ReportDiscussion({
         )}
       </div>
 
-      <form onSubmit={onSubmitComment} className="mt-4 flex gap-2">
-        <input
+      <form onSubmit={onSubmitComment} className="mt-4 flex items-end gap-2">
+        <textarea
           value={comment}
           onChange={(event) => onCommentChange(event.target.value)}
           maxLength={500}
+          rows={2}
+          aria-label="댓글 내용"
           placeholder="댓글 작성"
-          className="h-11 min-w-0 flex-1 rounded-md border border-line px-3 text-sm text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="min-h-16 min-w-0 flex-1 resize-none rounded-md border border-line px-3 py-2 text-sm text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
         <button
           type="submit"

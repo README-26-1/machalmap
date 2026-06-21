@@ -8,6 +8,7 @@ import KakaoMap from "@/components/KakaoMap";
 import CategoryFilter from "@/components/CategoryFilter";
 import ReportForm from "@/components/ReportForm";
 import SelectedReportDetail from "@/components/SelectedReportDetail";
+import ClusterListPanel from "@/components/ClusterListPanel";
 import { apiGet } from "@/lib/api";
 import { Category, Coordinates, Report } from "@/types/report";
 
@@ -16,6 +17,7 @@ export default function MapPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [category, setCategory] = useState<Category | null>(null);
   const [selected, setSelected] = useState<Report | null>(null);
+  const [clusterReports, setClusterReports] = useState<Report[] | null>(null);
   const [center, setCenter] = useState<Coordinates>();
   const [draftLocation, setDraftLocation] = useState<Coordinates | null>(null);
   const [loading, setLoading] = useState(true);
@@ -90,10 +92,17 @@ export default function MapPage() {
             draftLocation={draftLocation}
             onMarkerClick={(report) => {
               setDraftLocation(null);
+              setClusterReports(null);
               setSelected(report);
+            }}
+            onClusterClick={(group) => {
+              setDraftLocation(null);
+              setSelected(null);
+              setClusterReports(group);
             }}
             onMapRightClick={(point) => {
               setSelected(null);
+              setClusterReports(null);
               setDraftLocation(point);
             }}
           />
@@ -197,6 +206,17 @@ export default function MapPage() {
             // 해결 완료되면 핀이 사라지므로 상세 시트도 닫음
             if (counts.status === "해결 완료") setSelected(null);
             else setSelected({ ...selected, ...counts });
+          }}
+        />
+      )}
+
+      {clusterReports && !selected && (
+        <ClusterListPanel
+          reports={clusterReports}
+          onClose={() => setClusterReports(null)}
+          onSelect={(report) => {
+            setClusterReports(null);
+            setSelected(report);
           }}
         />
       )}
