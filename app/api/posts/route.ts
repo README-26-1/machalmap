@@ -5,15 +5,25 @@ import { getUserFromRequest, jsonError } from "@/lib/auth";
 // GET /api/posts — 커뮤니티 글 목록
 export async function GET() {
   const supabase = getServiceClient();
-  const { data, error } = await supabase
+  const { data: posts, error } = await supabase
     .from("posts")
-    .select("*, profiles(nickname)")
+    .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) return jsonError("DB_ERROR", error.message, 500);
-  const mapped = (data ?? []).map((p: any) => ({
+  if (error) {
+    console.error("[GET /api/posts] DB error:", error);
+    return jsonError("DB_ERROR", error.message, 500);
+  }
+
+  const userIds = (posts ?? []).map((p) => p.user_id).filter(Boolean);
+  const { data: profiles } = userIds.length
+    ? await supabase.from("profiles").select("id, nickname").in("id", userIds)
+    : { data: [] as { id: string; nickname: string }[] };
+
+  const mapped = (posts ?? []).map((p) => ({
     ...p,
-    author_nickname: p.profiles?.nickname ?? "익명",
+    author_nickname:
+      profiles?.find((pr) => pr.id === p.user_id)?.nickname ?? "익명",
   }));
   return Response.json({ data: mapped });
 }
