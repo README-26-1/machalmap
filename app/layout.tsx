@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import BottomNav from "@/components/BottomNav";
+import AppMenu from "@/components/AppMenu";
 
 export const metadata: Metadata = {
   title: "마찰지도 — 시민 참여형 생활 안전 지도",
@@ -20,9 +20,9 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"
         />
       </head>
-      <body className="min-h-screen pb-16">
+      <body className="min-h-screen">
         {children}
-        <BottomNav />
+        <AppMenu />
       </body>
     </html>
   );

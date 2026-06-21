@@ -70,24 +70,24 @@
 ### Grid
 
 - Primary surface width: mobile-first, full width.
-- Bottom navigation content width: full width with `max-w-md` to keep thumb navigation compact on wide screens.
+- Global app menu sits at the lower-left edge so it stays reachable without hiding page titles.
 - Breakpoints follow Tailwind defaults.
 
 ### Rules
 
 - 주요 모바일 고정 UI는 safe-area를 고려한다.
-- 지도 화면의 플로팅 버튼과 하단 네비게이션이 겹치지 않게 `body` 하단 여백을 유지한다.
+- 지도 화면의 왼쪽 메뉴 버튼과 오른쪽 제보 FAB가 서로 겹치지 않게 배치한다.
 
 ## 5. Components
 
-### Bottom Navigation
+### App Menu
 
-- Structure: fixed bottom `<nav>` with three route links.
-- Variants: active tab, inactive tab.
-- Spacing: `h-16`, `px-3`, `py-2`, `gap-1`.
-- States: hover, active, focus-visible, current page.
-- Accessibility: each tab is a link and active route uses `aria-current="page"`.
-- Motion: color/background changes use 200ms transitions.
+- Structure: fixed lower-left menu button that expands a compact route list.
+- Variants: closed button, open menu, active route item, inactive route item.
+- Spacing: trigger is `h-14 w-14`; menu rows are `h-12` with `gap-3`.
+- States: hover, active, focus-visible, expanded, current page.
+- Accessibility: trigger uses `aria-expanded` and `aria-controls`; active route uses `aria-current="page"`.
+- Motion: button press uses 150ms transform; list color/background changes use 200ms transitions.
 
 ## 6. Motion & Interaction
 
@@ -114,9 +114,9 @@ Machalmap uses a mixed but restrained strategy: thin borders for persistent stru
 |-------|-------|-------|
 | Card | `0 1px 3px rgba(0,0,0,0.08)` | active tabs, small elevated surfaces |
 | Float | `0 4px 16px rgba(0,0,0,0.16)` | map FAB, elevated panels |
-| Border | `1px solid var(--color-border)` | bottom nav edge, dividers |
+| Border | `1px solid var(--color-border)` | menu panel edge, dividers |
 
 ### Rules
 
-- Persistent navigation can use a border plus subtle translucent surface.
+- Persistent navigation can use a floating white surface with a subtle border.
 - Shadows should not overpower map content or report markers.

@@ -35,7 +35,7 @@ export default function MapPage() {
   );
 
   return (
-    <main className="relative h-[calc(100vh-4rem)] w-full">
+    <main className="relative h-[100dvh] w-full">
       {/* 상단 바 */}
       <div className="absolute left-0 right-0 top-0 z-20 bg-white/95 px-4 py-3 shadow-card backdrop-blur">
         <div className="mb-2 flex items-center justify-between">
