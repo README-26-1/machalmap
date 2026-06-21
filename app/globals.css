@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 디자인 시스템 토큰 (04_디자인_시스템.md) */
+:root {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-bg: #ffffff;
+  --color-surface: #f8fafc;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-border: #e2e8f0;
+
+  --marker-danger: #ef4444;
+  --marker-warn: #f97316;
+  --marker-facility: #3b82f6;
+  --marker-env: #22c55e;
+  --marker-resolved: #9ca3af;
+  --marker-etc: #8b5cf6;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-float: 0 4px 16px rgba(0, 0, 0, 0.16);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: Pretendard, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 상태 배지 색 매핑 (2.3) */
+.badge-status {
+  @apply inline-flex items-center rounded-sm px-2 py-0.5 text-xs font-medium;
+}
