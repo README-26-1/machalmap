@@ -3,11 +3,12 @@ import { getServiceClient } from "@/lib/supabaseServer";
 import { getUserFromRequest, jsonError } from "@/lib/auth";
 
 interface Ctx {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // POST /api/posts/:id/comments — 댓글 작성 (로그인 필요)
 export async function POST(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const user = await getUserFromRequest(req);
   if (!user) return jsonError("UNAUTHORIZED", "로그인이 필요합니다.", 401);
 
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const supabase = getServiceClient();
   const { data, error } = await supabase
     .from("comments")
-    .insert({ post_id: params.id, user_id: user.id, content: body.content })
+    .insert({ post_id: id, user_id: user.id, content: body.content })
     .select()
     .single();
 

@@ -3,16 +3,17 @@ import { getServiceClient } from "@/lib/supabaseServer";
 import { getUserFromRequest, jsonError } from "@/lib/auth";
 
 interface Ctx {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // GET /api/reports/:id — 제보 상세
 export async function GET(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const supabase = getServiceClient();
   const { data: report, error } = await supabase
     .from("reports")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
 
   if (error) return jsonError("DB_ERROR", error.message, 500);
@@ -22,12 +23,12 @@ export async function GET(req: NextRequest, { params }: Ctx) {
     supabase
       .from("report_comments")
       .select("*")
-      .eq("report_id", params.id)
+      .eq("report_id", id)
       .order("created_at", { ascending: true }),
     supabase
       .from("report_likes")
       .select("*", { count: "exact", head: true })
-      .eq("report_id", params.id),
+      .eq("report_id", id),
   ]);
 
   const userIds = (comments ?? []).map((comment) => comment.user_id);
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
     const { data: likeRow } = await supabase
       .from("report_likes")
       .select("report_id")
-      .eq("report_id", params.id)
+      .eq("report_id", id)
       .eq("user_id", user.id)
       .maybeSingle();
     liked = !!likeRow;
@@ -64,6 +65,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
 
 // PATCH /api/reports/:id — 작성자만 수정
 export async function PATCH(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const user = await getUserFromRequest(req);
   if (!user) return jsonError("UNAUTHORIZED", "로그인이 필요합니다.", 401);
 
@@ -71,7 +73,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   const { data: existing } = await supabase
     .from("reports")
     .select("user_id")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!existing) return jsonError("NOT_FOUND", "제보를 찾을 수 없습니다.", 404);
@@ -84,7 +86,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   const { data, error } = await supabase
     .from("reports")
     .update({ description, category })
-    .eq("id", params.id)
+    .eq("id", id)
     .select()
     .single();
 
@@ -94,6 +96,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 
 // DELETE /api/reports/:id — 작성자만 삭제
 export async function DELETE(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const user = await getUserFromRequest(req);
   if (!user) return jsonError("UNAUTHORIZED", "로그인이 필요합니다.", 401);
 
@@ -101,14 +104,14 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
   const { data: existing } = await supabase
     .from("reports")
     .select("user_id")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (!existing) return jsonError("NOT_FOUND", "제보를 찾을 수 없습니다.", 404);
   if (existing.user_id !== user.id)
     return jsonError("FORBIDDEN", "권한이 없습니다.", 403);
 
-  const { error } = await supabase.from("reports").delete().eq("id", params.id);
+  const { error } = await supabase.from("reports").delete().eq("id", id);
   if (error) return jsonError("DB_ERROR", error.message, 500);
   return Response.json({ data: { ok: true } });
 }

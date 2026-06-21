@@ -4,11 +4,12 @@ import { getUserFromRequest, jsonError } from "@/lib/auth";
 import { awardTrust } from "@/lib/trust";
 
 interface Ctx {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // POST /api/posts/:id/like — 좋아요 토글 (로그인 필요)
 export async function POST(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const user = await getUserFromRequest(req);
   if (!user) return jsonError("UNAUTHORIZED", "로그인이 필요합니다.", 401);
 
@@ -16,22 +17,22 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const { data: post } = await supabase
     .from("posts")
     .select("user_id")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
 
   const { data: existing } = await supabase
     .from("likes")
     .select("post_id")
-    .eq("post_id", params.id)
+    .eq("post_id", id)
     .eq("user_id", user.id)
     .maybeSingle();
 
   let liked: boolean;
   if (existing) {
-    await supabase.from("likes").delete().eq("post_id", params.id).eq("user_id", user.id);
+    await supabase.from("likes").delete().eq("post_id", id).eq("user_id", user.id);
     liked = false;
   } else {
-    await supabase.from("likes").insert({ post_id: params.id, user_id: user.id });
+    await supabase.from("likes").insert({ post_id: id, user_id: user.id });
     liked = true;
   }
 
@@ -44,9 +45,9 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const { count } = await supabase
     .from("likes")
     .select("*", { count: "exact", head: true })
-    .eq("post_id", params.id);
+    .eq("post_id", id);
 
-  await supabase.from("posts").update({ like_count: count ?? 0 }).eq("id", params.id);
+  await supabase.from("posts").update({ like_count: count ?? 0 }).eq("id", id);
 
   return Response.json({ data: { liked, like_count: count ?? 0 } });
 }

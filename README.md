@@ -4,7 +4,7 @@
 
 ## 기술 스택
 
-- **Next.js 14 (App Router)** + React 18 + TypeScript
+- **Next.js 16 (App Router)** + React 19 + TypeScript
 - **Tailwind CSS** (디자인 시스템 토큰 매핑)
 - **Supabase** — PostgreSQL · Auth · Storage
 - **Kakao Maps JavaScript API**
@@ -15,6 +15,7 @@
 ## 빠른 시작
 
 ```bash
+nvm use                            # Node.js 22
 npm install
 cp .env.local.example .env.local   # 값 채우기
 npm run dev                        # http://localhost:3000

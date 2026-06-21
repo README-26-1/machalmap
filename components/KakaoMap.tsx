@@ -220,8 +220,10 @@ export default function KakaoMap({
   const renderRef = useRef<() => void>(() => {});
   const [ready, setReady] = useState(false); // 지도 초기화 완료 여부
 
-  clickRef.current = onMapClick;
-  rightClickRef.current = onMapRightClick;
+  useEffect(() => {
+    clickRef.current = onMapClick;
+    rightClickRef.current = onMapRightClick;
+  }, [onMapClick, onMapRightClick]);
 
   // 지도 초기화
   useEffect(() => {
@@ -327,7 +329,9 @@ export default function KakaoMap({
     }
   }, [reports, onMarkerClick, onClusterClick]);
 
-  renderRef.current = renderMarkers;
+  useEffect(() => {
+    renderRef.current = renderMarkers;
+  }, [renderMarkers]);
 
   useEffect(() => {
     renderMarkers();

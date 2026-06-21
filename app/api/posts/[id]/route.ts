@@ -3,18 +3,19 @@ import { getServiceClient } from "@/lib/supabaseServer";
 import { getUserFromRequest, jsonError } from "@/lib/auth";
 
 interface Ctx {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 // GET /api/posts/:id — 글 상세 + 댓글
 export async function GET(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const supabase = getServiceClient();
 
   // 조인(embed) 대신 단순 조회 후 닉네임을 별도로 매핑 → 관계 해석 실패에 영향받지 않음
   const { data: post, error } = await supabase
     .from("posts")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
 
   if (error) {
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   const { data: comments } = await supabase
     .from("comments")
     .select("*")
-    .eq("post_id", params.id)
+    .eq("post_id", id)
     .order("created_at", { ascending: true });
 
   // 작성자 닉네임 일괄 조회
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
     const { data: likeRow } = await supabase
       .from("likes")
       .select("post_id")
-      .eq("post_id", params.id)
+      .eq("post_id", id)
       .eq("user_id", user.id)
       .maybeSingle();
     liked = !!likeRow;
@@ -68,6 +69,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
 
 // DELETE /api/posts/:id — 작성자만
 export async function DELETE(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const user = await getUserFromRequest(req);
   if (!user) return jsonError("UNAUTHORIZED", "로그인이 필요합니다.", 401);
 
@@ -75,13 +77,13 @@ export async function DELETE(req: NextRequest, { params }: Ctx) {
   const { data: existing } = await supabase
     .from("posts")
     .select("user_id")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
   if (!existing) return jsonError("NOT_FOUND", "글을 찾을 수 없습니다.", 404);
   if (existing.user_id !== user.id)
     return jsonError("FORBIDDEN", "권한이 없습니다.", 403);
 
-  const { error } = await supabase.from("posts").delete().eq("id", params.id);
+  const { error } = await supabase.from("posts").delete().eq("id", id);
   if (error) return jsonError("DB_ERROR", error.message, 500);
   return Response.json({ data: { ok: true } });
 }

@@ -6,13 +6,14 @@ import { awardTrust } from "@/lib/trust";
 import { FeedbackType } from "@/types/report";
 
 interface Ctx {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 const VALID: FeedbackType[] = ["still", "danger", "resolved"];
 
 // POST /api/reports/:id/feedback — 피드백 토글(등록/취소) + 상태 재계산
 export async function POST(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const body = await req.json().catch(() => null);
   const type = body?.type as FeedbackType | undefined;
   if (!type || !VALID.includes(type)) {
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const { data: report, error: rErr } = await supabase
     .from("reports")
     .select("user_id, status")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
   if (rErr || !report) return jsonError("NOT_FOUND", "제보를 찾을 수 없습니다.", 404);
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const { data: existing } = await supabase
       .from("feedbacks")
       .select("id")
-      .eq("report_id", params.id)
+      .eq("report_id", id)
       .eq("user_id", user.id)
       .eq("type", type)
       .maybeSingle();
@@ -46,21 +47,21 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     } else {
       await supabase
         .from("feedbacks")
-        .insert({ report_id: params.id, user_id: user.id, type });
+        .insert({ report_id: id, user_id: user.id, type });
       active = true;
     }
   } else {
     await supabase
       .from("feedbacks")
-      .insert({ report_id: params.id, user_id: null, type });
+      .insert({ report_id: id, user_id: null, type });
     active = true;
   }
 
   // 카운트를 feedbacks 테이블에서 다시 집계(증감 모두 정확)
   const [stillRes, dangerRes, resolvedRes] = await Promise.all([
-    supabase.from("feedbacks").select("*", { count: "exact", head: true }).eq("report_id", params.id).eq("type", "still"),
-    supabase.from("feedbacks").select("*", { count: "exact", head: true }).eq("report_id", params.id).eq("type", "danger"),
-    supabase.from("feedbacks").select("*", { count: "exact", head: true }).eq("report_id", params.id).eq("type", "resolved"),
+    supabase.from("feedbacks").select("*", { count: "exact", head: true }).eq("report_id", id).eq("type", "still"),
+    supabase.from("feedbacks").select("*", { count: "exact", head: true }).eq("report_id", id).eq("type", "danger"),
+    supabase.from("feedbacks").select("*", { count: "exact", head: true }).eq("report_id", id).eq("type", "resolved"),
   ]);
   const counts = {
     still_count: stillRes.count ?? 0,
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const { data, error } = await supabase
     .from("reports")
     .update({ ...counts, status })
-    .eq("id", params.id)
+    .eq("id", id)
     .select("status, still_count, danger_count, resolved_count")
     .single();
   if (error) return jsonError("DB_ERROR", error.message, 500);

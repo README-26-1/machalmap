@@ -3,18 +3,19 @@ import { getUserFromRequest, jsonError } from "@/lib/auth";
 import { getServiceClient } from "@/lib/supabaseServer";
 
 interface Ctx {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 const MAX_COMMENT_LENGTH = 500;
 
 // GET /api/reports/:id/comments — 제보 댓글 목록
 export async function GET(_req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const supabase = getServiceClient();
   const { data: comments, error } = await supabase
     .from("report_comments")
     .select("id, report_id, user_id, content, created_at")
-    .eq("report_id", params.id)
+    .eq("report_id", id)
     .order("created_at", { ascending: true });
 
   if (error) return jsonError("DB_ERROR", error.message, 500);
@@ -41,6 +42,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
 // POST /api/reports/:id/comments — 댓글 작성 (로그인 필요)
 export async function POST(req: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   const user = await getUserFromRequest(req);
   if (!user) return jsonError("UNAUTHORIZED", "로그인이 필요합니다.", 401);
 
@@ -59,14 +61,14 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const { data: report, error: reportError } = await supabase
     .from("reports")
     .select("id")
-    .eq("id", params.id)
+    .eq("id", id)
     .maybeSingle();
   if (reportError) return jsonError("DB_ERROR", reportError.message, 500);
   if (!report) return jsonError("NOT_FOUND", "제보를 찾을 수 없습니다.", 404);
 
   const { data, error } = await supabase
     .from("report_comments")
-    .insert({ report_id: params.id, user_id: user.id, content })
+    .insert({ report_id: id, user_id: user.id, content })
     .select("id, report_id, user_id, content, created_at")
     .single();
 
