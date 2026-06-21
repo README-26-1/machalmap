@@ -43,6 +43,18 @@ export function applyFeedback(
   return { counts: next, status };
 }
 
+/**
+ * 카운트만으로 상태를 도출한다(증감 모두 대응 — 취소 포함).
+ * 우선순위: 해결 완료 > 위험 > 지속 중 > 해결 후보 > 확인 필요
+ */
+export function deriveStatus(counts: Counts): ReportStatus {
+  if (counts.resolved_count >= 3) return "해결 완료";
+  if (counts.danger_count > 0) return "위험";
+  if (counts.still_count > 0) return "지속 중";
+  if (counts.resolved_count >= 1) return "해결 후보";
+  return "확인 필요";
+}
+
 /** status별 색 토큰 키 */
 export function statusColor(status: ReportStatus): string {
   switch (status) {

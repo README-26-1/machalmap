@@ -36,8 +36,12 @@ export default function MapPage() {
     );
   }, [loadReports]);
 
+  // 해결 완료된 제보는 지도에서 숨김(데이터는 유지). 카테고리 필터도 함께 적용.
   const filtered = useMemo(
-    () => (category ? reports.filter((r) => r.category === category) : reports),
+    () =>
+      reports.filter(
+        (r) => r.status !== "해결 완료" && (!category || r.category === category)
+      ),
     [reports, category]
   );
 
@@ -171,9 +175,18 @@ export default function MapPage() {
 
       {selected && (
         <SelectedReportDetail
+          key={selected.id}
           report={selected}
           onClose={() => setSelected(null)}
-          onUpdated={(counts) => setSelected({ ...selected, ...counts })}
+          onUpdated={(counts) => {
+            // 지도 마커 배열에도 즉시 반영
+            setReports((prev) =>
+              prev.map((r) => (r.id === selected.id ? { ...r, ...counts } : r))
+            );
+            // 해결 완료되면 핀이 사라지므로 상세 시트도 닫음
+            if (counts.status === "해결 완료") setSelected(null);
+            else setSelected({ ...selected, ...counts });
+          }}
         />
       )}
     </main>
