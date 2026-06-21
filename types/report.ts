@@ -46,6 +46,21 @@ export interface Report {
   created_at: string;
 }
 
+export interface ReportComment {
+  readonly id: string;
+  readonly report_id: string;
+  readonly user_id: string;
+  readonly content: string;
+  readonly created_at: string;
+  readonly author_nickname?: string;
+}
+
+export type ReportDetail = Report & {
+  readonly comments: readonly ReportComment[];
+  readonly liked: boolean;
+  readonly like_count: number;
+};
+
 export interface NewReportInput {
   image_url: string | null;
   category: Category;

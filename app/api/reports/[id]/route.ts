@@ -7,16 +7,59 @@ interface Ctx {
 }
 
 // GET /api/reports/:id — 제보 상세
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   const supabase = getServiceClient();
-  const { data, error } = await supabase
+  const { data: report, error } = await supabase
     .from("reports")
     .select("*")
     .eq("id", params.id)
-    .single();
+    .maybeSingle();
 
-  if (error) return jsonError("NOT_FOUND", "제보를 찾을 수 없습니다.", 404);
-  return Response.json({ data });
+  if (error) return jsonError("DB_ERROR", error.message, 500);
+  if (!report) return jsonError("NOT_FOUND", "제보를 찾을 수 없습니다.", 404);
+
+  const [{ data: comments }, { count: likeCount }] = await Promise.all([
+    supabase
+      .from("report_comments")
+      .select("*")
+      .eq("report_id", params.id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("report_likes")
+      .select("*", { count: "exact", head: true })
+      .eq("report_id", params.id),
+  ]);
+
+  const userIds = (comments ?? []).map((comment) => comment.user_id);
+  const { data: profiles } = userIds.length
+    ? await supabase.from("profiles").select("id, nickname").in("id", userIds)
+    : { data: [] as { id: string; nickname: string }[] };
+  const nicknameOf = (id: string) =>
+    profiles?.find((profile) => profile.id === id)?.nickname ?? "익명";
+
+  const user = await getUserFromRequest(req);
+  let liked = false;
+  if (user) {
+    const { data: likeRow } = await supabase
+      .from("report_likes")
+      .select("report_id")
+      .eq("report_id", params.id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    liked = !!likeRow;
+  }
+
+  return Response.json({
+    data: {
+      ...report,
+      liked,
+      like_count: likeCount ?? 0,
+      comments: (comments ?? []).map((comment) => ({
+        ...comment,
+        author_nickname: nicknameOf(comment.user_id),
+      })),
+    },
+  });
 }
 
 // PATCH /api/reports/:id — 작성자만 수정
