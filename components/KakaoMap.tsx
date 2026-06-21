@@ -60,6 +60,7 @@ interface Props {
   center?: Coordinates;
   draftLocation?: Coordinates | null;
   onMarkerClick?: (report: Report) => void;
+  onMapClick?: (point: Coordinates) => void;
   onMapRightClick?: (point: Coordinates) => void;
 }
 
@@ -98,14 +99,17 @@ export default function KakaoMap({
   center,
   draftLocation,
   onMarkerClick,
+  onMapClick,
   onMapRightClick,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<KakaoMapInstance | null>(null);
   const markersRef = useRef<KakaoMarker[]>([]);
   const draftMarkerRef = useRef<KakaoMarker | null>(null);
+  const clickRef = useRef<Props["onMapClick"]>(undefined);
   const rightClickRef = useRef<Props["onMapRightClick"]>(undefined);
 
+  clickRef.current = onMapClick;
   rightClickRef.current = onMapRightClick;
 
   // 지도 초기화
@@ -122,6 +126,12 @@ export default function KakaoMap({
         );
         const map = new kakao.maps.Map(ref.current, { center: c, level: 4 });
         mapRef.current = map;
+        kakao.maps.event.addListener(map, "click", (event) => {
+          clickRef.current?.({
+            lat: event.latLng.getLat(),
+            lng: event.latLng.getLng(),
+          });
+        });
         kakao.maps.event.addListener(map, "rightclick", (event) => {
           rightClickRef.current?.({
             lat: event.latLng.getLat(),

@@ -1,86 +1,105 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, X } from "lucide-react";
 import Button from "@/components/Button";
+import ReportLocationPicker from "@/components/ReportLocationPicker";
+import ReportPhotoField from "@/components/ReportPhotoField";
 import { apiSend, uploadImage } from "@/lib/api";
 import { supabase } from "@/lib/supabaseClient";
-import { CATEGORIES, Category, Coordinates, Report } from "@/types/report";
+import { CATEGORIES, isCategory, type Category, type Coordinates, type Report } from "@/types/report";
+import type { PreparedReportPhoto } from "@/lib/photoGps";
+import type {
+  LocationSource,
+  SelectedReportPhoto,
+  StatusMessage,
+} from "@/components/reportFormTypes";
 
 interface Props {
-  // 등록 성공 후 처리 (지정 안 하면 홈으로 이동). 모달에서는 닫기+새로고침에 사용.
   readonly onSuccess?: () => void;
-  // 취소/닫기 (모달에서 로그인 안내 시 닫기 버튼 등)
   readonly onCancel?: () => void;
-  // 지도 우클릭 등으로 전달된 초기 좌표 (있으면 위치를 미리 채움)
   readonly initialCoords?: Coordinates | null;
 }
 
 export default function ReportForm({ onSuccess, onCancel, initialCoords }: Props) {
   const router = useRouter();
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>("");
+  const [photo, setPhoto] = useState<SelectedReportPhoto | null>(null);
+  const [photoStatus, setPhotoStatus] = useState<StatusMessage | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [category, setCategory] = useState<Category>(CATEGORIES[0]);
   const [description, setDescription] = useState("");
   const [coords, setCoords] = useState<Coordinates | null>(initialCoords ?? null);
+  const [locationSource, setLocationSource] = useState<LocationSource | null>(
+    initialCoords ? "initial" : null
+  );
+  const [locationStatus, setLocationStatus] = useState<StatusMessage | null>(null);
   const [busy, setBusy] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setAuthed(!!data.session));
   }, []);
 
-  // 비동기로 전달되는 초기 좌표(URL 파라미터 등)를 반영
   useEffect(() => {
-    if (initialCoords) setCoords(initialCoords);
+    if (!initialCoords) return;
+    setCoords(initialCoords);
+    setLocationSource("initial");
   }, [initialCoords]);
 
-  function handleFiles(files: FileList | null) {
-    const f = files?.[0];
-    if (!f) return;
-    if (!f.type.startsWith("image/")) {
-      alert("이미지 파일만 업로드할 수 있어요.");
+  useEffect(() => {
+    return () => {
+      if (photo) URL.revokeObjectURL(photo.previewUrl);
+    };
+  }, [photo]);
+
+  function handlePreparedPhoto(preparedPhoto: PreparedReportPhoto) {
+    if (preparedPhoto.coordinates) {
+      setCoords(preparedPhoto.coordinates);
+      setLocationSource("photo");
+      setLocationStatus({
+        tone: "success",
+        text: "사진에 저장된 GPS 위치를 자동으로 입력했어요.",
+      });
       return;
     }
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+    setLocationStatus({
+      tone: "warning",
+      text: "사진에 위치 정보가 없어요. 현재 위치를 가져오거나 지도에서 위치를 선택해 주세요.",
+    });
   }
 
-  function openPicker() {
-    inputRef.current?.click();
-  }
-
-  function clearFile() {
-    setFile(null);
-    setPreview("");
-    if (inputRef.current) inputRef.current.value = "";
-  }
-
-  function onDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragging(false);
-    handleFiles(e.dataTransfer.files);
-  }
-
-  function getLocation() {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () =>
-        alert(
-          "위치 권한이 거부되었습니다. 지도에서 직접 선택하는 기능은 추후 추가됩니다."
-        )
+  function clearPhoto() {
+    setPhoto(null);
+    setPhotoStatus(null);
+    if (locationSource !== "photo") return;
+    setCoords(initialCoords ?? null);
+    setLocationSource(initialCoords ? "initial" : null);
+    setLocationStatus(
+      initialCoords ? { tone: "success", text: "지도에서 전달된 위치를 다시 사용해요." } : null
     );
   }
 
+  function selectLocation(point: Coordinates, source: LocationSource) {
+    setCoords(point);
+    setLocationSource(source);
+  }
+
+  function changeCategory(value: string) {
+    if (isCategory(value)) setCategory(value);
+  }
+
   async function submit() {
-    if (!coords) return alert("위치를 먼저 가져와 주세요.");
+    if (!coords) {
+      setLocationStatus({
+        tone: "warning",
+        text: "위치를 먼저 입력해 주세요. 현재 위치 또는 지도 선택을 사용할 수 있어요.",
+      });
+      return;
+    }
+
     setBusy(true);
     try {
-      let image_url: string | null = null;
-      if (file) image_url = await uploadImage(file);
+      const image_url = photo ? await uploadImage(photo.file) : null;
       await apiSend<Report>("/api/reports", "POST", {
         image_url,
         category,
@@ -90,8 +109,8 @@ export default function ReportForm({ onSuccess, onCancel, initialCoords }: Props
       });
       if (onSuccess) onSuccess();
       else router.push("/");
-    } catch (e) {
-      alert((e as Error).message);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "제보 등록에 실패했어요.");
     } finally {
       setBusy(false);
     }
@@ -119,76 +138,26 @@ export default function ReportForm({ onSuccess, onCancel, initialCoords }: Props
 
   return (
     <div>
-      <label className="mb-2 block text-sm font-medium">사진</label>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        onChange={(e) => handleFiles(e.target.files)}
-        className="hidden"
+      <ReportPhotoField
+        photo={photo}
+        status={photoStatus}
+        busy={photoBusy}
+        onBusyChange={setPhotoBusy}
+        onPhotoChange={setPhoto}
+        onStatusChange={setPhotoStatus}
+        onPrepared={handlePreparedPhoto}
+        onClear={clearPhoto}
       />
-
-      {preview ? (
-        <div className="relative mb-4 overflow-hidden rounded-md border border-line">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={preview}
-            alt="미리보기"
-            className="max-h-56 w-full object-cover"
-          />
-          <button
-            type="button"
-            onClick={clearFile}
-            aria-label="사진 제거"
-            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink/60 text-white transition hover:bg-ink/80"
-          >
-            <X size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={openPicker}
-            className="absolute bottom-2 right-2 rounded-md bg-white/90 px-3 py-1.5 text-xs font-semibold text-ink shadow-card transition hover:bg-white"
-          >
-            다른 사진 선택
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={openPicker}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-          className={`mb-4 flex w-full flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed px-4 py-8 text-center transition ${
-            dragging
-              ? "border-primary bg-primary/5"
-              : "border-line bg-surface hover:border-primary/60"
-          }`}
-        >
-          <ImagePlus
-            size={28}
-            className={dragging ? "text-primary" : "text-ink-muted"}
-            aria-hidden="true"
-          />
-          <span className="text-sm font-medium text-ink">
-            사진을 끌어다 놓거나 클릭해서 선택
-          </span>
-          <span className="text-xs text-ink-muted">JPG · PNG 이미지</span>
-        </button>
-      )}
 
       <label className="mb-1 block text-sm font-medium">카테고리</label>
       <select
         value={category}
-        onChange={(e) => setCategory(e.target.value as Category)}
+        onChange={(event) => changeCategory(event.target.value)}
         className="mb-4 h-12 w-full rounded-md border border-line px-3"
       >
-        {CATEGORIES.map((c) => (
-          <option key={c} value={c}>
-            {c}
+        {CATEGORIES.map((item) => (
+          <option key={item} value={item}>
+            {item}
           </option>
         ))}
       </select>
@@ -196,22 +165,21 @@ export default function ReportForm({ onSuccess, onCancel, initialCoords }: Props
       <label className="mb-1 block text-sm font-medium">설명</label>
       <textarea
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
+        onChange={(event) => setDescription(event.target.value)}
         rows={3}
         placeholder="어떤 불편/위험인지 간단히 적어주세요."
         className="mb-4 w-full rounded-md border border-line p-3 text-sm"
       />
 
-      <Button variant="secondary" onClick={getLocation} className="mb-2 w-full">
-        현재 위치 가져오기
-      </Button>
-      {coords && (
-        <p className="mb-4 text-xs text-ink-muted">
-          위도 {coords.lat.toFixed(5)} / 경도 {coords.lng.toFixed(5)}
-        </p>
-      )}
+      <ReportLocationPicker
+        coords={coords}
+        source={locationSource}
+        status={locationStatus}
+        onSelect={selectLocation}
+        onStatusChange={setLocationStatus}
+      />
 
-      <Button onClick={submit} disabled={busy} className="w-full">
+      <Button onClick={submit} disabled={busy || photoBusy} className="w-full">
         {busy ? "등록 중…" : "제보 등록"}
       </Button>
     </div>

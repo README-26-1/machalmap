@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ReportForm from "@/components/ReportForm";
+import { toCoordinates } from "@/lib/coordinates";
 import { Coordinates } from "@/types/report";
 
 function parseCoordinate(value: string | null): number | null {
@@ -18,8 +19,9 @@ export default function NewReportPage() {
     const params = new URLSearchParams(window.location.search);
     const lat = parseCoordinate(params.get("lat"));
     const lng = parseCoordinate(params.get("lng"));
-    if (lat === null || lng === null) return;
-    setInitialCoords({ lat, lng });
+    const coordinates = toCoordinates(lat, lng);
+    if (!coordinates) return;
+    setInitialCoords(coordinates);
   }, []);
 
   return (
